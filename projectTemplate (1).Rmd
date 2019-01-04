@@ -1,0 +1,285 @@
+影响红酒质量的因素评估
+
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+
+#install.packages('GGally')
+
+library(ggplot2)
+library(gridExtra)
+library(GGally)
+
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data ,完成数据的读入
+red_wine <- read.csv('wineQualityReds.csv')
+red_wine <- subset(red_wine, select = -X)
+
+head(red_wine)
+```
+
+# Univariate Plots Section
+```{r echo=FALSE, Univariate_Plots}
+ggplot(red_wine, aes(quality)) +
+  geom_histogram(binwidth = 1)
+
+summary(red_wine$quality)
+```
+通过分析数据发现，这里包含的1599条数据中，酒的质量评分在3~8分之间。
+没有评分非常高（10）和评分非常低的（1）的数据。
+
+# Univariate Plots Section
+```{r echo=FALSE, Univariate_Plots_1}
+
+ggplot(red_wine, aes(residual.sugar)) +
+  geom_histogram()
+
+summary(red_wine$residual.sugar)
+```
+```{r echo=FALSE, warning=FALSE}
+ggplot(red_wine, aes(residual.sugar)) +
+  geom_histogram(binwidth = 0.1) +
+  xlim(0, quantile(red_wine$residual.sugar, 0.95)) +
+  xlab("residual.sugar (Bottom 95%)")
+
+summary(subset(red_wine$residual.sugar,
+               red_wine$residual.sugar < quantile(red_wine$residual.sugar, 0.95)))
+```
+通过图像分析，我们可以看到大部分的甜度在1.5~2.5之间。（g / dm^3）
+
+```{r}
+ggplot(red_wine, aes(alcohol)) +
+  geom_histogram(binwidth = 0.1) +
+  geom_vline(xintercept = median(red_wine$alcohol), color = 'royalblue') +
+  geom_vline(xintercept = mean(red_wine$alcohol), color = 'coral')
+
+summary(red_wine$alcohol)
+```
+```{r echo=FALSE, warning=FALSE}
+p1 <- qplot(red_wine$fixed.acidity)
+p2 <- qplot(red_wine$volatile.acidity)
+p3 <- qplot(red_wine$citric.acid)
+p4 <- qplot(red_wine$chlorides)
+p5 <- qplot(red_wine$free.sulfur.dioxide)
+p6 <- qplot(red_wine$total.sulfur.dioxide)
+p7 <- qplot(red_wine$density)
+p8 <- qplot(red_wine$pH)
+p9 <- qplot(red_wine$sulphates)
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol = 3)
+```
+```{r}
+ggplot(red_wine, aes(x = chlorides)) +
+  geom_histogram() +
+  xlim(quantile(red_wine$chlorides, 0.05), quantile(red_wine$chlorides, 0.95)) +
+  xlab("chlorides (middle 95%)")
+summary(subset(red_wine$chlorides,
+               red_wine$chlorides < quantile(red_wine$chlorides, 0.95)))
+```
+```{r}
+ggplot(red_wine, aes(x=density)) +
+  geom_density() +
+  stat_function(linetype = 'dashed',
+                color = 'royalblue',
+                fun = dnorm,
+                args = list(mean = mean(red_wine$density), sd = sd(red_wine$density)))
+```
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+文档中包含了1599条记录，每一条记录包含了12个属性。
+
+
+### What is/are the main feature(s) of interest in your dataset?
+是什么因素导致了红酒质量的变化。
+但是数据中的红酒的评分的范围在3~8分之间，所以没有特别好的酒和特别差的酒。`r mean(red_wine$quality)`
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+目前只探究了单一变量的一些数据情况，还没有办法知道哪些因素是影响红酒的质量的元素
+
+### Did you create any new variables from existing variables in the dataset?
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+
+
+# Bivariate Plots Section
+
+
+```{r}
+round(cor(red_wine), 3)
+```
+
+
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = quality)) +
+  geom_point()
+```
+
+
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = quality)) +
+  geom_jitter(alpha = 0.25) +
+  geom_smooth(method = "lm")
+```
+
+从图形中来看，红酒的质量和酒精浓度有点正相关,相关度为0.476
+
+```{r}
+ggplot(red_wine, aes(x = residual.sugar, y = quality)) +
+  xlim(0, quantile(red_wine$residual.sugar, 0.95)) +
+  xlab("residual sugar (bottom 95%") +
+  geom_jitter(alpha = 0.15)
+```
+
+```{r}
+ggplot(red_wine, aes(x = volatile.acidity, y = quality)) +
+  geom_jitter(alpha = 0.25) +
+  geom_smooth(method = 'lm')
+```
+```{r}
+ggplot(red_wine, aes(x = fixed.acidity, y = pH)) +
+  geom_point(alpha = 0.25) +
+  geom_smooth(method = 'lm')
+```
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+所有属性中，和红酒质量评分有较高相关性的属性就是“酒精浓度”，相关性达到了0.476
+而红酒的质量又和挥发酸有比较强的负相关，挥发酸越强，红酒的质量相对较差。
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+密度和酒精浓度有很强的负相关，这个挺意外的，可能是因为自己对红酒的组成元素一点都不了解吧。。。
+
+### What was the strongest relationship you found?
+
+酸度和PH值的负相关性，这个比较好猜，酸度越大PH值越低。
+
+
+
+# Multivariate Plots Section
+
+```{r Multivariate_Plots}
+ggplot(red_wine, aes(x = alcohol, y = quality, color = volatile.acidity)) +
+  geom_jitter() +
+  scale_color_gradient(high = 'blue', low = 'green')
+```
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = quality, color = citric.acid)) +
+  geom_jitter() +
+  scale_color_gradient(high = 'green', low = 'blue')
+```
+
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = volatile.acidity, color = factor(quality))) +
+  geom_jitter() +
+  scale_color_brewer()
+```
+
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = quality, color = citric.acid)) +
+  geom_jitter() +
+  scale_color_gradient(high = 'red', low = 'blue')
+```
+
+```{r}
+ggplot(red_wine, aes(x = alcohol, y = density, color = residual.sugar)) +
+  geom_jitter() +
+  scale_color_gradient2(limits=c(0, quantile(red_wine$residual.sugar, 0.95)),
+                        midpoint = median(red_wine$residual.sugar))
+```
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+通过图像表示，酒精浓度提升，挥发酸下降时，相应的红酒质量是提升的。
+
+### Were there any interesting or surprising interactions between features?
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r Plot_One}
+ggplot(red_wine, aes(alcohol)) +
+  geom_histogram(binwidth = 0.1) +
+  geom_vline(xintercept = median(red_wine$alcohol), color = 'royalblue') +
+  annotate('text',
+           x = median(red_wine$alcohol) - 0.35,
+           y = 120,
+           label = paste('median\n(', median(red_wine$alcohol), ')', sep = ''),
+           color = 'royalblue') +
+  geom_vline(xintercept = mean(red_wine$alcohol), color = 'red') +
+  annotate('text',
+           x = mean(red_wine$alcohol) + 0.35,
+           y = 120,
+           label = paste('mean\n(', round(mean(red_wine$alcohol), 2), ')', sep = ''),
+           color = 'red') +
+  xlab("Alcohol (%)") +
+  ylab("Numbers")
+```
+
+
+
+### Description One
+根据数据酒精浓度和红酒质量存在相关性，所以这里了解下不同酒精浓度的数量情况。
+可以看到均值（10.2）小于中位数（10.42）
+
+### Plot Two
+
+```{r Plot_Two}
+ggplot(red_wine, aes(x = alcohol, y = quality)) +
+  geom_jitter(alpha = 0.1, height = 0.48, width = 0.025) +
+  geom_smooth(method = "lm") +
+  ggtitle("Quality vs Alcohol Content") +
+  xlab("Alcohol (%)") +
+  ylab("Quality (0-10)")
+```
+
+### Description Two
+
+这里展示了两个变量之间的相关性。
+
+### Plot Three
+
+```{r Plot_Three}
+ggplot(red_wine, aes(x = alcohol, y = volatile.acidity, color = factor(quality))) +
+  geom_jitter() +
+  scale_color_brewer(name = "Quality") +
+  ggtitle("Quality by Volitile Acidity and Alcohol") +
+  xlab("Alcohol (%)") +
+  ylab("Volitile Acidity (g/L)")
+```
+
+
+### Description Three
+
+这里展示了当红酒的质量提升时，对应的酒精含量上升同时挥发酸下降。
+
+------
+
+# Reflection
+
+1. 首先了解整个数据结构，一共存在1599条记录，每条记录中包含了和酒质量相关的12个属性
+2. 但是由于要研究红酒质量和什么成分有关，但是样本数据中却没有高质量（大于8分）的酒的数据，所以可能会影响整体分析结果。
+3. 通过分析两两数据的相关性，初步锁定红酒的质量和酒精浓度有一定的相关性
+4. 在锁定了1个变量之后，再去需要是不是有第2个元素对红酒质量的影响，所以发现了挥发酸这个属性与酒精质量成反相关。
+
+
