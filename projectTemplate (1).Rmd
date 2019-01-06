@@ -25,44 +25,8 @@ red_wine <- subset(red_wine, select = -X)
 
 head(red_wine)
 ```
+先整体的看一下各个因子情况及数量分布
 
-# Univariate Plots Section
-```{r echo=FALSE, Univariate_Plots}
-ggplot(red_wine, aes(quality)) +
-  geom_histogram(binwidth = 1)
-
-summary(red_wine$quality)
-```
-通过分析数据发现，这里包含的1599条数据中，酒的质量评分在3~8分之间。
-没有评分非常高（10）和评分非常低的（1）的数据。
-
-# Univariate Plots Section
-```{r echo=FALSE, Univariate_Plots_1}
-
-ggplot(red_wine, aes(residual.sugar)) +
-  geom_histogram()
-
-summary(red_wine$residual.sugar)
-```
-```{r echo=FALSE, warning=FALSE}
-ggplot(red_wine, aes(residual.sugar)) +
-  geom_histogram(binwidth = 0.1) +
-  xlim(0, quantile(red_wine$residual.sugar, 0.95)) +
-  xlab("residual.sugar (Bottom 95%)")
-
-summary(subset(red_wine$residual.sugar,
-               red_wine$residual.sugar < quantile(red_wine$residual.sugar, 0.95)))
-```
-通过图像分析，我们可以看到大部分的甜度在1.5~2.5之间。（g / dm^3）
-
-```{r}
-ggplot(red_wine, aes(alcohol)) +
-  geom_histogram(binwidth = 0.1) +
-  geom_vline(xintercept = median(red_wine$alcohol), color = 'royalblue') +
-  geom_vline(xintercept = mean(red_wine$alcohol), color = 'coral')
-
-summary(red_wine$alcohol)
-```
 ```{r echo=FALSE, warning=FALSE}
 p1 <- qplot(red_wine$fixed.acidity)
 p2 <- qplot(red_wine$volatile.acidity)
@@ -75,6 +39,54 @@ p8 <- qplot(red_wine$pH)
 p9 <- qplot(red_wine$sulphates)
 grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol = 3)
 ```
+
+从图中可以看到，氯化物的含量的分布比较单一，就是说1600条记录中没有太大差别。
+因为分析的方向是找到影响红酒质量的因子，所以先看一下测试数据中红酒的质量是如何分布的。
+
+# Univariate Plots Section
+```{r echo=FALSE, Univariate_Plots}
+ggplot(red_wine, aes(quality)) +
+  geom_bar() +
+    labs(title = "quality of red wine")
+
+summary(red_wine$quality)
+```
+通过分析数据发现，这里包含的1599条数据中，酒的质量评分在3~8分之间。
+没有评分非常高（10）和评分非常低的（1）的数据，这样的数据组成对分析有点不理。
+
+# Univariate Plots Section
+```{r echo=FALSE, Univariate_Plots_1}
+
+ggplot(red_wine, aes(residual.sugar)) +
+  geom_histogram()
+
+summary(red_wine$residual.sugar)
+```
+了解下所分析的红酒中，不同的糖分含量所占的数量。
+通过图形可以看到红酒的甜度存在长尾效应，所以去掉数量最少的部分，可以更好的看到数据的趋势和分布。
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(red_wine, aes(residual.sugar)) +
+  geom_histogram(binwidth = 0.1) +
+  xlim(0, quantile(red_wine$residual.sugar, 0.95)) +
+  xlab("residual.sugar (Bottom 95%)")
+
+summary(subset(red_wine$residual.sugar,
+               red_wine$residual.sugar < quantile(red_wine$residual.sugar, 0.95)))
+```
+
+通过图像分析，我们可以看到大部分的甜度在1.5~2.5之间。（g / dm^3）
+
+```{r}
+ggplot(red_wine, aes(alcohol)) +
+  geom_histogram(binwidth = 0.1) +
+  geom_vline(xintercept = median(red_wine$alcohol), color = 'royalblue') +
+  geom_vline(xintercept = mean(red_wine$alcohol), color = 'coral')
+
+summary(red_wine$alcohol)
+```
+由于氯化物含量的数据比较集中，所以选择更小的范围来观察因子。
+
 ```{r}
 ggplot(red_wine, aes(x = chlorides)) +
   geom_histogram() +
@@ -113,42 +125,66 @@ ggplot(red_wine, aes(x=density)) +
 
 # Bivariate Plots Section
 
+为了更好的了解因子之间的相关性，所以先列出两两因子之间的相关性数据。
+
 
 ```{r}
 round(cor(red_wine), 3)
 ```
+其中相关性数据大于0.5，或者小于-0.5左右的会重点进行分析。
+其中比较关注的存在正相关的因子包含密度和固态酸，质量和酒精浓度比较正相关（0.476）
+酒精浓度和密度存在负相关
 
-
+那么我们重点来看一下质量和酒精浓度的关系，
 ```{r}
 ggplot(red_wine, aes(x = alcohol, y = quality)) +
   geom_point()
 ```
-
+但是我们发现很多重合的点。
+所以我们在图形中添加噪声，这样可以更好的看到数据的趋势。
 
 ```{r}
 ggplot(red_wine, aes(x = alcohol, y = quality)) +
   geom_jitter(alpha = 0.25) +
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm") +
+  labs(
+       title = 'Relation between alcohot and quality')
 ```
 
 从图形中来看，红酒的质量和酒精浓度有点正相关,相关度为0.476
 
 ```{r}
-ggplot(red_wine, aes(x = residual.sugar, y = quality)) +
-  xlim(0, quantile(red_wine$residual.sugar, 0.95)) +
-  xlab("residual sugar (bottom 95%") +
-  geom_jitter(alpha = 0.15)
+red_wine$quality <- factor(red_wine$quality)
+
+ggplot(red_wine, aes(y = alcohol, x = quality)) +
+  geom_boxplot(alpha = 0.1, color = 'blue') +
+  stat_summary(fun.y = 'mean', geom = 'point', color = 'red') +
+  geom_jitter(alpha = 0.1) +
+  labs(x = 'quality',
+       y = 'alcohol',
+       title = 'Boxplot of each quality')
+  
 ```
 
 ```{r}
-ggplot(red_wine, aes(x = volatile.acidity, y = quality)) +
-  geom_jitter(alpha = 0.25) +
-  geom_smooth(method = 'lm')
+
+red_wine$quality <- factor(red_wine$quality)
+
+ggplot(red_wine, aes(y = volatile.acidity, x = quality)) +
+  geom_boxplot(alpha = 0.1, color = 'blue') +
+  stat_summary(fun.y = 'mean', geom = 'point', color = 'red') +
+  geom_jitter(alpha = 0.1) +
+  labs(x = 'quality',
+       y = 'volatile.acidity',
+       title = 'Boxplot of each quality')
 ```
 ```{r}
 ggplot(red_wine, aes(x = fixed.acidity, y = pH)) +
   geom_point(alpha = 0.25) +
-  geom_smooth(method = 'lm')
+  geom_smooth(method = 'lm') +
+    labs(x = 'fixed.acidity',
+       y = 'pH',
+       title = 'Relation between ph and fixed.acidity')
 ```
 
 
@@ -171,36 +207,47 @@ ggplot(red_wine, aes(x = fixed.acidity, y = pH)) +
 
 # Multivariate Plots Section
 
+对于多个变量在研究时，选择质量这样的类别参数作为颜色变色的变量
+首先选择在两元变量分析中和质量存在相关的两个变量，包含酒精含量和密度
+
 ```{r Multivariate_Plots}
-ggplot(red_wine, aes(x = alcohol, y = quality, color = volatile.acidity)) +
+red_wine$quality <- factor(red_wine$quality)
+
+ggplot(red_wine, aes(x = density, y = alcohol, color = quality)) +
   geom_jitter() +
-  scale_color_gradient(high = 'blue', low = 'green')
+  scale_color_brewer(type = 'div', palette = "PuOr") +
+  coord_cartesian(xlim = c(0.985, 1.0)) + 
+   labs(
+       title = 'Scatterplot between density and alcohol with colored quality level')
 ```
-```{r}
-ggplot(red_wine, aes(x = alcohol, y = quality, color = citric.acid)) +
-  geom_jitter() +
-  scale_color_gradient(high = 'green', low = 'blue')
-```
+所以从图中可以看到评分高的酒，酒精含量比较高同时浓度比较高
 
 ```{r}
-ggplot(red_wine, aes(x = alcohol, y = volatile.acidity, color = factor(quality))) +
+
+red_wine$quality <- factor(red_wine$quality)
+
+ggplot(red_wine, aes(x = alcohol, color = quality, y = citric.acid)) +
   geom_jitter() +
-  scale_color_brewer()
+  scale_color_brewer(type = 'div', palette = 'PuOr') + 
+     labs(
+       title = 'Scatterplot between acid and alcohol with colored quality level')
 ```
+
+所以从图中可以看到评分高的酒，酒精含量比较高同时柠檬酸也比较高。
+由于二元变量（挥发酸和质量）的负相关比较强，同时我们知道酒精含量和红酒的质量有比较强的相关性，
+所以这里将这三个变量的关系一起分析。
 
 ```{r}
-ggplot(red_wine, aes(x = alcohol, y = quality, color = citric.acid)) +
+
+ggplot(red_wine, aes(x = alcohol, color = quality, y = volatile.acidity)) +
   geom_jitter() +
-  scale_color_gradient(high = 'red', low = 'blue')
+  scale_color_brewer(type = 'div', palette = 'PuOr') + 
+     labs(
+       title = 'Scatterplot between volatile.acidity and alcohol with colored quality level')
 ```
 
-```{r}
-ggplot(red_wine, aes(x = alcohol, y = density, color = residual.sugar)) +
-  geom_jitter() +
-  scale_color_gradient2(limits=c(0, quantile(red_wine$residual.sugar, 0.95)),
-                        midpoint = median(red_wine$residual.sugar))
-```
-
+所以我们可以看到这里深色的点分布比较集中
+当酒精的含量较高，并且挥发酸度低时，红酒的质量会普遍高一点
 
 # Multivariate Analysis
 
@@ -233,7 +280,9 @@ ggplot(red_wine, aes(alcohol)) +
            label = paste('mean\n(', round(mean(red_wine$alcohol), 2), ')', sep = ''),
            color = 'red') +
   xlab("Alcohol (%)") +
-  ylab("Numbers")
+  ylab("Numbers") + 
+  labs(title = "Histograms of alcohol")
+
 ```
 
 
@@ -253,6 +302,8 @@ ggplot(red_wine, aes(x = alcohol, y = quality)) +
   ylab("Quality (0-10)")
 ```
 
+从二元变量的相关性分析中，可以明确的看到酒精含量和质量有较强的正相关。
+
 ### Description Two
 
 这里展示了两个变量之间的相关性。
@@ -260,9 +311,9 @@ ggplot(red_wine, aes(x = alcohol, y = quality)) +
 ### Plot Three
 
 ```{r Plot_Three}
-ggplot(red_wine, aes(x = alcohol, y = volatile.acidity, color = factor(quality))) +
+ggplot(red_wine, aes(x = alcohol, color = quality, y = volatile.acidity)) +
   geom_jitter() +
-  scale_color_brewer(name = "Quality") +
+  scale_color_brewer(type = 'div', palette = 'PuOr') + 
   ggtitle("Quality by Volitile Acidity and Alcohol") +
   xlab("Alcohol (%)") +
   ylab("Volitile Acidity (g/L)")
@@ -280,6 +331,6 @@ ggplot(red_wine, aes(x = alcohol, y = volatile.acidity, color = factor(quality))
 1. 首先了解整个数据结构，一共存在1599条记录，每条记录中包含了和酒质量相关的12个属性
 2. 但是由于要研究红酒质量和什么成分有关，但是样本数据中却没有高质量（大于8分）的酒的数据，所以可能会影响整体分析结果。
 3. 通过分析两两数据的相关性，初步锁定红酒的质量和酒精浓度有一定的相关性
-4. 在锁定了1个变量之后，再去需要是不是有第2个元素对红酒质量的影响，所以发现了挥发酸这个属性与酒精质量成反相关。
-
-
+4. 在锁定了1个变量之后（酒精的含量），再去需要是不是有第2个元素对红酒质量的影响，所以发现了挥发酸这个属性与酒精质量成反相关。
+5. 现在的一些分析，还只是初步证明红酒质量高的就有一些特点，如高酒精含量，高柠檬酸，和较低的挥发酸。但是还不能证明这些因素是优质红酒的充分条件。
+6. 同时在分析时，会圈定一个有强相关的银子，之后就围绕这个因素添加第二个因素，但是现在高质量的数据点还是比较分散，如果有更多数据就好了。
